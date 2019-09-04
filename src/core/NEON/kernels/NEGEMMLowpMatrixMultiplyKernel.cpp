@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019 ARM Limited.
+ * Copyright (c) 2017, 2018 ARM Limited.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -284,7 +284,6 @@ void inline vector_matrix_multiply_s8(Iterator &ina, Iterator &inb, Iterator &ou
         auto vec_a          = reinterpret_cast<const int8_t *>(ina.ptr());
         auto matrix_b       = reinterpret_cast<const int8_t *>(inb.ptr());
         auto vec_a_end_addr = vec_a + width_a;
-
         // This for loop performs 8 accumulations
         for(; vec_a <= (vec_a_end_addr - 8);)
         {
@@ -479,118 +478,278 @@ void inline vector_matrix_multiply_s8(Iterator &ina, Iterator &inb, Iterator &ou
 
 void inline matrix_multiply_u8(Iterator &ina, Iterator &inb, Iterator &out, int width_b, size_t out_stride, const Window &window)
 {
-    execute_window_loop(window, [&](const Coordinates &)
+    execute_window_loop(window, [&](const Coordinates & id)
     {
         const uint8_t *mtx_a0 = ina.ptr();
         const uint8_t *mtx_b0 = inb.ptr();
-
         // Note: Since the input are all positives, we can use uint32_t
         // Accumulators for the block 0
-        uint32x4x4_t c0 =
+        uint16x4x4_t c0 =
         {
             {
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0)
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
+            }
+        };
+              
+        uint16x4x4_t c1 =
+        {
+            {
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
             }
         };
 
-        // Accumulators for the block 1
-        uint32x4x4_t c1 =
+        uint16x4x4_t c2 =
         {
             {
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0)
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
             }
         };
 
-        // Accumulators for the block 2
-        uint32x4x4_t c2 =
+        uint16x4x4_t c3 =
         {
             {
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0)
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
             }
         };
 
-        // Accumulators for the block 3
-        uint32x4x4_t c3 =
+        uint16x4x4_t c4 =
         {
             {
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0),
-                vdupq_n_u32(0)
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
             }
         };
+
+        uint16x4x4_t c5 =
+        {
+            {
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
+            }
+        };
+
+        uint16x4x4_t c6 =
+        {
+            {
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
+            }
+        };
+
+        uint16x4x4_t c7 =
+        {
+            {
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0),
+                vdup_n_u16(0)
+            }
+        };
+
+
 
         for(int k = 0; k < width_b; k += 16, mtx_a0 += 4, mtx_b0 += 16)
         {
             const uint8x8_t  a00_u8 = vld1_u8(mtx_a0);
             const uint8x16_t b00_u8 = vld1q_u8(mtx_b0);
 
-            // Convert a00_u8 to uint16_t and get the lower part
-            const uint16x4_t a00_u16 = vget_low_u16(vmovl_u8(a00_u8));
+            uint16_t tmp;
+            const uint8x8_t  temp = vdup_n_u8(0x0F);
+            const uint8x8_t  a0_u8 = vshr_n_u8(a00_u8, 4);
+            const uint8x8_t  a1_u8 = vand_u8(a00_u8, temp);
+            
+            const uint8x16_t temp2 = vdupq_n_u8(0x0F);
+            const uint8x16_t b0_u8 = vshrq_n_u8(b00_u8, 4);
+            const uint8x16_t b1_u8 = vandq_u8(b00_u8, temp2);
 
+            // Convert a00_u8 to uint16_t and get the lower part
+            const uint16x4_t a0_u16 = vget_low_u16(vmovl_u8(a0_u8));
+            const uint16x4_t a1_u16 = vget_low_u16(vmovl_u8(a1_u8));
+            tmp = vget_lane_u16(a0_u16, 0);
+            //printf("%d", tmp);
+ 
             // Convert b00_s8 to uint16_t
-            const uint16x4x4_t b00_u16 =
+            const uint16x4x4_t b0_u16 =
             {
                 {
-                    vget_low_u16(vmovl_u8(vget_low_u8(b00_u8))),
-                    vget_high_u16(vmovl_u8(vget_low_u8(b00_u8))),
-                    vget_low_u16(vmovl_u8(vget_high_u8(b00_u8))),
-                    vget_high_u16(vmovl_u8(vget_high_u8(b00_u8)))
+                    vget_low_u16(vmovl_u8(vget_low_u8(b0_u8))),
+                    vget_high_u16(vmovl_u8(vget_low_u8(b0_u8))),
+                    vget_low_u16(vmovl_u8(vget_high_u8(b0_u8))),
+                    vget_high_u16(vmovl_u8(vget_high_u8(b0_u8)))
                 }
             };
 
-            // 4x4 block 0
-            c0.val[0] = vmlal_lane_u16(c0.val[0], b00_u16.val[0], a00_u16, 0);
-            c0.val[1] = vmlal_lane_u16(c0.val[1], b00_u16.val[1], a00_u16, 0);
-            c0.val[2] = vmlal_lane_u16(c0.val[2], b00_u16.val[2], a00_u16, 0);
-            c0.val[3] = vmlal_lane_u16(c0.val[3], b00_u16.val[3], a00_u16, 0);
+            const uint16x4x4_t b1_u16 =
+            {
+                {
+                    vget_low_u16(vmovl_u8(vget_low_u8(b1_u8))),
+                    vget_high_u16(vmovl_u8(vget_low_u8(b1_u8))),
+                    vget_low_u16(vmovl_u8(vget_high_u8(b1_u8))),
+                    vget_high_u16(vmovl_u8(vget_high_u8(b1_u8)))
+                }
+            };
+ 
 
-            // 4x4 block 1
-            c1.val[0] = vmlal_lane_u16(c1.val[0], b00_u16.val[0], a00_u16, 1);
-            c1.val[1] = vmlal_lane_u16(c1.val[1], b00_u16.val[1], a00_u16, 1);
-            c1.val[2] = vmlal_lane_u16(c1.val[2], b00_u16.val[2], a00_u16, 1);
-            c1.val[3] = vmlal_lane_u16(c1.val[3], b00_u16.val[3], a00_u16, 1);
+          // 4x4 block 00
+            c0.val[0] = vmla_lane_u16(c0.val[0], b0_u16.val[0], a0_u16, 0);
+            c0.val[1] = vmla_lane_u16(c0.val[1], b0_u16.val[1], a0_u16, 0);
+            c0.val[2] = vmla_lane_u16(c0.val[2], b0_u16.val[2], a0_u16, 0);
+            c0.val[3] = vmla_lane_u16(c0.val[3], b0_u16.val[3], a0_u16, 0);
+            
+            // 4x4 block 10
+            c1.val[0] = vmla_lane_u16(c1.val[0], b0_u16.val[0], a0_u16, 1);
+            c1.val[1] = vmla_lane_u16(c1.val[1], b0_u16.val[1], a0_u16, 1);
+            c1.val[2] = vmla_lane_u16(c1.val[2], b0_u16.val[2], a0_u16, 1);
+            c1.val[3] = vmla_lane_u16(c1.val[3], b0_u16.val[3], a0_u16, 1);
 
-            // 4x4 block 2
-            c2.val[0] = vmlal_lane_u16(c2.val[0], b00_u16.val[0], a00_u16, 2);
-            c2.val[1] = vmlal_lane_u16(c2.val[1], b00_u16.val[1], a00_u16, 2);
-            c2.val[2] = vmlal_lane_u16(c2.val[2], b00_u16.val[2], a00_u16, 2);
-            c2.val[3] = vmlal_lane_u16(c2.val[3], b00_u16.val[3], a00_u16, 2);
 
-            // 4x4 block 3
-            c3.val[0] = vmlal_lane_u16(c3.val[0], b00_u16.val[0], a00_u16, 3);
-            c3.val[1] = vmlal_lane_u16(c3.val[1], b00_u16.val[1], a00_u16, 3);
-            c3.val[2] = vmlal_lane_u16(c3.val[2], b00_u16.val[2], a00_u16, 3);
-            c3.val[3] = vmlal_lane_u16(c3.val[3], b00_u16.val[3], a00_u16, 3);
+            // 4x4 block 20
+            c2.val[0] = vmla_lane_u16(c2.val[0], b0_u16.val[0], a0_u16, 2);
+            c2.val[1] = vmla_lane_u16(c2.val[1], b0_u16.val[1], a0_u16, 2);
+            c2.val[2] = vmla_lane_u16(c2.val[2], b0_u16.val[2], a0_u16, 2);
+            c2.val[3] = vmla_lane_u16(c2.val[3], b0_u16.val[3], a0_u16, 2);
+
+            // 4x4 block 30
+            c3.val[0] = vmla_lane_u16(c3.val[0], b0_u16.val[0], a0_u16, 3);
+            c3.val[1] = vmla_lane_u16(c3.val[1], b0_u16.val[1], a0_u16, 3);
+            c3.val[2] = vmla_lane_u16(c3.val[2], b0_u16.val[2], a0_u16, 3);
+            c3.val[3] = vmla_lane_u16(c3.val[3], b0_u16.val[3], a0_u16, 3);
+            
+            //4x4 block 01
+            c4.val[0] = vmla_lane_u16(c4.val[0], b1_u16.val[0], a1_u16, 0);
+            c4.val[1] = vmla_lane_u16(c4.val[1], b1_u16.val[1], a1_u16, 0);
+            c4.val[2] = vmla_lane_u16(c4.val[2], b1_u16.val[2], a1_u16, 0);
+            c4.val[3] = vmla_lane_u16(c4.val[3], b1_u16.val[3], a1_u16, 0);
+            
+            //4x4 block 11
+            c5.val[0] = vmla_lane_u16(c5.val[0], b1_u16.val[0], a1_u16, 1);
+            c5.val[1] = vmla_lane_u16(c5.val[1], b1_u16.val[1], a1_u16, 1);
+            c5.val[2] = vmla_lane_u16(c5.val[2], b1_u16.val[2], a1_u16, 1);
+            c5.val[3] = vmla_lane_u16(c5.val[3], b1_u16.val[3], a1_u16, 1);
+
+            //4x4 block 21
+            c6.val[0] = vmla_lane_u16(c6.val[0], b1_u16.val[0], a1_u16, 2);
+            c6.val[1] = vmla_lane_u16(c6.val[1], b1_u16.val[1], a1_u16, 2);
+            c6.val[2] = vmla_lane_u16(c6.val[2], b1_u16.val[2], a1_u16, 2);
+            c6.val[3] = vmla_lane_u16(c6.val[3], b1_u16.val[3], a1_u16, 2);
+ 
+            //4x4 block 31
+            c7.val[0] = vmla_lane_u16(c7.val[0], b1_u16.val[0], a1_u16, 3);
+            c7.val[1] = vmla_lane_u16(c7.val[1], b1_u16.val[1], a1_u16, 3);
+            c7.val[2] = vmla_lane_u16(c7.val[2], b1_u16.val[2], a1_u16, 3);
+            c7.val[3] = vmla_lane_u16(c7.val[3], b1_u16.val[3], a1_u16, 3);
+
+            tmp = vget_lane_u16(c0.val[0], 0);
+            //printf("%d", tmp);
+            tmp = vget_lane_u16(c2.val[0], 0);
+            //printf("%d", tmp);
+            tmp = vget_lane_u16(c4.val[0], 0);
+            //printf("%d", tmp);
+            tmp = vget_lane_u16(c6.val[0], 0);
+   //         printf("%d", tmp);
+ 
+
         }
 
+        uint32x4x4_t c00 =
+        {
+            {
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0)
+            }
+        };
+
+        uint32x4x4_t c01 =
+        {
+            {
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0)
+            }
+        };
+
+        uint32x4x4_t c02 =
+        {
+            {
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0)
+            }
+        };
+
+        uint32x4x4_t c03 =
+        {
+            {
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0),
+                vdupq_n_u32(0)
+            }
+        };
+
+        c00.val[0] = vshlq_n_u32(vmovl_u16(c0.val[0]), 16) + vmovl_u16(c4.val[0]);
+        c00.val[1] = vshlq_n_u32(vmovl_u16(c0.val[1]), 16) + vmovl_u16(c4.val[1]);
+        c00.val[2] = vshlq_n_u32(vmovl_u16(c0.val[2]), 16) + vmovl_u16(c4.val[2]);
+        c00.val[3] = vshlq_n_u32(vmovl_u16(c0.val[3]), 16) + vmovl_u16(c4.val[3]);
+
+        c01.val[0] = vshlq_n_u32(vmovl_u16(c1.val[0]), 16) + vmovl_u16(c5.val[0]);
+        c01.val[1] = vshlq_n_u32(vmovl_u16(c1.val[1]), 16) + vmovl_u16(c5.val[1]);
+        c01.val[2] = vshlq_n_u32(vmovl_u16(c1.val[2]), 16) + vmovl_u16(c5.val[2]);
+        c01.val[3] = vshlq_n_u32(vmovl_u16(c1.val[3]), 16) + vmovl_u16(c5.val[3]);
+
+        c02.val[0] = vshlq_n_u32(vmovl_u16(c2.val[0]), 16) + vmovl_u16(c6.val[0]);
+        c02.val[1] = vshlq_n_u32(vmovl_u16(c2.val[1]), 16) + vmovl_u16(c6.val[1]);
+        c02.val[2] = vshlq_n_u32(vmovl_u16(c2.val[2]), 16) + vmovl_u16(c6.val[2]);
+        c02.val[3] = vshlq_n_u32(vmovl_u16(c2.val[3]), 16) + vmovl_u16(c6.val[3]);
+
+        c03.val[0] = vshlq_n_u32(vmovl_u16(c3.val[0]), 16) + vmovl_u16(c7.val[0]);
+        c03.val[1] = vshlq_n_u32(vmovl_u16(c3.val[1]), 16) + vmovl_u16(c7.val[1]);
+        c03.val[2] = vshlq_n_u32(vmovl_u16(c3.val[2]), 16) + vmovl_u16(c7.val[2]);
+        c03.val[3] = vshlq_n_u32(vmovl_u16(c3.val[3]), 16) + vmovl_u16(c7.val[3]);
+        uint32_t tmp;
+ 
         auto mtx_out = reinterpret_cast<int32_t *>(out.ptr());
-        vst1q_s32(mtx_out + 0 * out_stride + 0, vreinterpretq_s32_u32(c0.val[0]));
-        vst1q_s32(mtx_out + 0 * out_stride + 4, vreinterpretq_s32_u32(c0.val[1]));
-        vst1q_s32(mtx_out + 0 * out_stride + 8, vreinterpretq_s32_u32(c0.val[2]));
-        vst1q_s32(mtx_out + 0 * out_stride + 12, vreinterpretq_s32_u32(c0.val[3]));
-        vst1q_s32(mtx_out + 1 * out_stride + 0, vreinterpretq_s32_u32(c1.val[0]));
-        vst1q_s32(mtx_out + 1 * out_stride + 4, vreinterpretq_s32_u32(c1.val[1]));
-        vst1q_s32(mtx_out + 1 * out_stride + 8, vreinterpretq_s32_u32(c1.val[2]));
-        vst1q_s32(mtx_out + 1 * out_stride + 12, vreinterpretq_s32_u32(c1.val[3]));
-        vst1q_s32(mtx_out + 2 * out_stride + 0, vreinterpretq_s32_u32(c2.val[0]));
-        vst1q_s32(mtx_out + 2 * out_stride + 4, vreinterpretq_s32_u32(c2.val[1]));
-        vst1q_s32(mtx_out + 2 * out_stride + 8, vreinterpretq_s32_u32(c2.val[2]));
-        vst1q_s32(mtx_out + 2 * out_stride + 12, vreinterpretq_s32_u32(c2.val[3]));
-        vst1q_s32(mtx_out + 3 * out_stride + 0, vreinterpretq_s32_u32(c3.val[0]));
-        vst1q_s32(mtx_out + 3 * out_stride + 4, vreinterpretq_s32_u32(c3.val[1]));
-        vst1q_s32(mtx_out + 3 * out_stride + 8, vreinterpretq_s32_u32(c3.val[2]));
-        vst1q_s32(mtx_out + 3 * out_stride + 12, vreinterpretq_s32_u32(c3.val[3]));
-    },
+
+        vst1q_s32(mtx_out + 0 * out_stride + 0, vreinterpretq_s32_u32(c00.val[0]));
+        vst1q_s32(mtx_out + 0 * out_stride + 4, vreinterpretq_s32_u32(c00.val[1]));
+        vst1q_s32(mtx_out + 0 * out_stride + 8, vreinterpretq_s32_u32(c00.val[2]));
+        vst1q_s32(mtx_out + 0 * out_stride + 12, vreinterpretq_s32_u32(c00.val[3]));
+        vst1q_s32(mtx_out + 1 * out_stride + 0, vreinterpretq_s32_u32(c01.val[0]));
+        vst1q_s32(mtx_out + 1 * out_stride + 4, vreinterpretq_s32_u32(c01.val[1]));
+        vst1q_s32(mtx_out + 1 * out_stride + 8, vreinterpretq_s32_u32(c01.val[2]));
+        vst1q_s32(mtx_out + 1 * out_stride + 12, vreinterpretq_s32_u32(c01.val[3]));
+        vst1q_s32(mtx_out + 2 * out_stride + 0, vreinterpretq_s32_u32(c02.val[0]));
+        vst1q_s32(mtx_out + 2 * out_stride + 4, vreinterpretq_s32_u32(c02.val[1]));
+        vst1q_s32(mtx_out + 2 * out_stride + 8, vreinterpretq_s32_u32(c02.val[2]));
+        vst1q_s32(mtx_out + 2 * out_stride + 12, vreinterpretq_s32_u32(c02.val[3]));
+        vst1q_s32(mtx_out + 3 * out_stride + 0, vreinterpretq_s32_u32(c03.val[0]));
+        vst1q_s32(mtx_out + 3 * out_stride + 4, vreinterpretq_s32_u32(c03.val[1]));
+        vst1q_s32(mtx_out + 3 * out_stride + 8, vreinterpretq_s32_u32(c03.val[2]));
+        vst1q_s32(mtx_out + 3 * out_stride + 12, vreinterpretq_s32_u32(c03.val[3]));
+},
+    
     ina, inb, out);
 }
 
@@ -599,11 +758,10 @@ void inline matrix_multiply_s8(Iterator &ina, Iterator &inb, Iterator &out, int 
     // The implementation assumes that the matrix A and Matrix B have been reshaped respectively with NEGEMMInterleave4x4 and NEGEMMTranspose1xW
     // The reshaping of the matrices helps to have a cache friendly implementation and helps to avoid the data re-arrangements needed for computing 16x4 elements per iteration
     // All the values needed for computing a single 4x4 block will be read from consecutive memory positions
-    execute_window_loop(window, [&](const Coordinates &)
+    execute_window_loop(window, [&](const Coordinates & id)
     {
         auto *mtx_a0 = reinterpret_cast<const int8_t *>(ina.ptr());
         auto *mtx_b0 = reinterpret_cast<const int8_t *>(inb.ptr());
-
         // Note: Since the input are all positives, we can use uint32_t
         // Accumulators for the block 0
         int32x4x4_t c0 =
@@ -669,6 +827,7 @@ void inline matrix_multiply_s8(Iterator &ina, Iterator &inb, Iterator &out, int 
             };
 
             // 4x4 block 0
+            /*
             c0.val[0] = vmlal_lane_s16(c0.val[0], b00_s16.val[0], a00_s16, 0);
             c0.val[1] = vmlal_lane_s16(c0.val[1], b00_s16.val[1], a00_s16, 0);
             c0.val[2] = vmlal_lane_s16(c0.val[2], b00_s16.val[2], a00_s16, 0);
@@ -691,6 +850,36 @@ void inline matrix_multiply_s8(Iterator &ina, Iterator &inb, Iterator &out, int 
             c3.val[1] = vmlal_lane_s16(c3.val[1], b00_s16.val[1], a00_s16, 3);
             c3.val[2] = vmlal_lane_s16(c3.val[2], b00_s16.val[2], a00_s16, 3);
             c3.val[3] = vmlal_lane_s16(c3.val[3], b00_s16.val[3], a00_s16, 3);
+            */
+            
+            //const int16_t a00_s16 = a00_s16.val;
+            //int16x4_t a00_s16 = vdup_n_s16(a00_s16);
+            //int16_t ptr[4];
+            //vst1_s16(ptr, a00_s16);
+            //int16x4_t a00_s16 = vdup_n_s16(*mtx_a0);
+            c0.val[0] += vaddl_s16(b00_s16.val[0], a00_s16);
+            c0.val[1] += vaddl_s16(b00_s16.val[1], a00_s16);
+            c0.val[2] += vaddl_s16(b00_s16.val[2], a00_s16);
+            c0.val[3] += vaddl_s16(b00_s16.val[3], a00_s16);
+            
+            //a00_s16 = vdup_n_s16(*(mtx_a0+1));
+            c1.val[0] += vaddl_s16(b00_s16.val[0], a00_s16);
+            c1.val[1] += vaddl_s16(b00_s16.val[1], a00_s16);
+            c1.val[2] += vaddl_s16(b00_s16.val[2], a00_s16);
+            c1.val[3] += vaddl_s16(b00_s16.val[3], a00_s16);
+
+            //a00_s16 = vdup_n_s16(*(mtx_a0+2));
+            c2.val[0] += vaddl_s16(b00_s16.val[0], a00_s16);
+            c2.val[1] += vaddl_s16(b00_s16.val[1], a00_s16);
+            c2.val[2] += vaddl_s16(b00_s16.val[2], a00_s16);
+            c2.val[3] += vaddl_s16(b00_s16.val[3], a00_s16);
+
+            //a00_s16 = vdup_n_s16(*(mtx_a0+3));
+            c3.val[0] += vaddl_s16(b00_s16.val[0], a00_s16);
+            c3.val[1] += vaddl_s16(b00_s16.val[1], a00_s16);
+            c3.val[2] += vaddl_s16(b00_s16.val[2], a00_s16);
+            c3.val[3] += vaddl_s16(b00_s16.val[3], a00_s16);
+            
         }
 
         auto mtx_out = reinterpret_cast<int32_t *>(out.ptr());
@@ -780,9 +969,9 @@ std::pair<Status, Window> validate_and_configure_window(ITensorInfo *input0, ITe
 
         unsigned int num_k_iterations = ceil_to_multiple(input1->dimension(0), num_elems_processed_per_iteration_x) / 16;
         // For each iteration of "k" we increment the input pointer by 4, and we load 8 elements a the time:
-        AccessWindowStatic    in0_access(input0, 0, 0, (num_k_iterations - 1) * 4 + 8, input0->dimension(1));
-        AccessWindowStatic    in1_access(input1, 0, 0, ceil_to_multiple(input1->dimension(0), num_elems_processed_per_iteration_x), input1->dimension(1));
-        AccessWindowRectangle output_access(output, 0, 0, num_elems_processed_per_iteration_x, num_elems_processed_per_iteration_y);
+        AccessWindowStatic     in0_access(input0, 0, 0, (num_k_iterations - 1) * 4 + 8, input0->dimension(1));
+        AccessWindowHorizontal in1_access(input1, 0, input1->dimension(0));
+        AccessWindowRectangle  output_access(output, 0, 0, num_elems_processed_per_iteration_x, num_elems_processed_per_iteration_y);
 
         window_changed = update_window_and_padding(win, in0_access, in1_access, output_access);
 
@@ -831,7 +1020,6 @@ void NEGEMMLowpMatrixMultiplyKernel::run(const Window &window, const ThreadInfo 
     ARM_COMPUTE_UNUSED(info);
     ARM_COMPUTE_ERROR_ON_UNCONFIGURED_KERNEL(this);
     ARM_COMPUTE_ERROR_ON_INVALID_SUBWINDOW(INEKernel::window(), window);
-
     // Check if the output tensor is a vector. If so,the kernel runs the vector-matrix multiplication path
     if((_output->info()->dimension(1) == 1))
     {
@@ -924,6 +1112,12 @@ void NEGEMMLowpMatrixMultiplyKernel::run(const Window &window, const ThreadInfo 
             case DataType::U8:
             case DataType::QASYMM8:
             {
+                /*
+                if(_output->info()->data_type()==DataType::U32)
+                    std::cout<<"U32"<< std::endl;
+                else if(_output->info()->data_type()==DataType::U8)
+                    std::cout<<"U8"<< std::endl;
+                */
                 matrix_multiply_u8(ina, inb, out, width_b, out_stride, window);
                 break;
             }
