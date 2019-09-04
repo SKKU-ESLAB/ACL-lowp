@@ -1,92 +1,47 @@
-<div align="center">
- <img src="https://raw.githubusercontent.com/ARM-software/ComputeLibrary/gh-pages/ACL_logo.png"><br><br>
-</div>
+# ACL-lowp
+The project is designed to support efficient low precision computations on arm mobile devices.
 
-Release repository: https://github.com/arm-software/ComputeLibrary
+It is implemented by utilizing SIMD MAC instructions of NEON for low precision data.
 
-Development repository: https://review.mlplatform.org/#/admin/projects/ml/ComputeLibrary
+This library is not a typical GEMM but a GEMM library of bit-packed low precision data.
 
-Please report issues here: https://github.com/ARM-software/ComputeLibrary/issues
+Currently, only general matrix multiplication(GEMM) for 4 bit data is supported.
 
-**Make sure you are using the latest version of the library before opening an issue. Thanks**
+## References
+This project is implemented based on arm compute library
 
-News:
+* arm compute library  [https://github.com/ARM-software/ComputeLibrary][acl]
 
-- [Gian Marco's talk on Performance Analysis for Optimizing Embedded Deep Learning Inference Software](https://www.embedded-vision.com/platinum-members/arm/embedded-vision-training/videos/pages/may-2019-embedded-vision-summit)
-- [Gian Marco's talk on optimizing CNNs with Winograd algorithms at the EVS](https://www.embedded-vision.com/platinum-members/arm/embedded-vision-training/videos/pages/may-2018-embedded-vision-summit-iodice)
-- [Gian Marco's talk on using SGEMM and FFTs to Accelerate Deep Learning](https://www.embedded-vision.com/platinum-members/arm/embedded-vision-training/videos/pages/may-2016-embedded-vision-summit-iodice)
+## Prerequisites
+* Scons
 
-Related projects:
+## Building
+Build the arm computer library with scons.
 
-- [Arm NN SDK](https://github.com/arm-software/armnn)
+Build command depends on the target architecture and the OS of the compilation environment.
 
-Tutorials:
+For example, if the target architecture is armv7a and the compilation environment is linux, the command is
 
-- [Tutorial: Cartoonifying Images on Raspberry Pi with the Compute Library](https://community.arm.com/graphics/b/blog/posts/cartoonifying-images-on-raspberry-pi-with-the-compute-library)
-- [Tutorial: Running AlexNet on Raspberry Pi with Compute Library](https://community.arm.com/processors/b/blog/posts/running-alexnet-on-raspberry-pi-with-compute-library)
+```
+scons asserts=1 neon=1 examples=1 os=linux arch=armv7a
+```
 
-Blogs:
+## Running the tests
+There is example code executing low precision gemm
 
-- [Happy Birthday ACL!](https://community.arm.com/developer/tools-software/graphics/b/blog/posts/arm-compute-library-19-05-is-coming)
+```
+examples/neon_lowgemm.cpp
+```
 
-Documentation available here:
+You can compile and run this by doing:
 
-- [v19.08](https://arm-software.github.io/ComputeLibrary/v19.08/)
-- [v19.05](https://arm-software.github.io/ComputeLibrary/v19.05/)
-- [v19.02](https://arm-software.github.io/ComputeLibrary/v19.02/)
-- [v18.11](https://arm-software.github.io/ComputeLibrary/v18.11/index.xhtml)
-- [v18.08](https://arm-software.github.io/ComputeLibrary/v18.08/)
-- [v18.05](https://arm-software.github.io/ComputeLibrary/v18.05/)
-- [v18.03](https://arm-software.github.io/ComputeLibrary/v18.03/)
-- [v18.02](https://arm-software.github.io/ComputeLibrary/v18.02/)
-- [v18.01](https://arm-software.github.io/ComputeLibrary/v18.01/)
-- [v17.12](https://arm-software.github.io/ComputeLibrary/v17.12/)
-- [v17.10](https://arm-software.github.io/ComputeLibrary/v17.10/)
-- [v17.09](https://arm-software.github.io/ComputeLibrary/v17.09/)
-- [v17.06](https://arm-software.github.io/ComputeLibrary/v17.06/)
-- [v17.05](https://arm-software.github.io/ComputeLibrary/v17.05/)
-- [v17.04](https://arm-software.github.io/ComputeLibrary/v17.04/)
-- [v17.03.1](https://arm-software.github.io/ComputeLibrary/v17.03.1/)
+```
+g++ examples/neon_lowgemm.cpp build/utils/*.o -O2 -std=c++11 -I. -Iinclude -Lbuild -larm_compute -larm_compute_core -larm_compute_graph -o neon_lowgemm
+```
+```
+LD_LIBRARY_PATH=build/ ./neon_lowgemm
+```
 
-Binaries available here:
+You can easily modify the example code and make your own.
 
-- [v19.08-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v19.08/arm_compute-v19.08-bin-linux.tar.gz)
-- [v19.08-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v19.08/arm_compute-v19.08-bin-android.tar.gz)
-- [v19.05-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v19.05/arm_compute-v19.05-bin-linux.tar.gz)
-- [v19.05-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v19.05/arm_compute-v19.05-bin-android.tar.gz)
-- [v19.02-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v19.02/arm_compute-v19.02-bin-linux.tar.gz)
-- [v19.02-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v19.02/arm_compute-v19.02-bin-android.tar.gz)
-- [v18.11-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.11/arm_compute-v18.11-bin-linux.tar.gz)
-- [v18.11-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.11/arm_compute-v18.11-bin-android.tar.gz)
-- [v18.08-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.08/arm_compute-v18.08-bin-linux.tar.gz)
-- [v18.08-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.08/arm_compute-v18.08-bin-android.tar.gz)
-- [v18.05-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.05/arm_compute-v18.05-bin-linux.tar.gz)
-- [v18.05-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.05/arm_compute-v18.05-bin-android.tar.gz)
-- [v18.03-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.03/arm_compute-v18.03-bin-linux.tar.gz)
-- [v18.03-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.03/arm_compute-v18.03-bin-android.tar.gz)
-- [v18.02-linux](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.02/arm_compute-v18.02-bin-linux.tar.gz)
-- [v18.02-android](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.02/arm_compute-v18.02-bin-android.tar.gz)
-- [v18.01](https://github.com/ARM-software/ComputeLibrary/releases/download/v18.01/arm_compute-v18.01-bin.tar.gz)
-- [v17.12](https://github.com/ARM-software/ComputeLibrary/releases/download/v17.12/arm_compute-v17.12-bin.tar.gz)
-- [v17.10](https://github.com/ARM-software/ComputeLibrary/releases/download/v17.10/arm_compute-v17.10-bin.tar.gz)
-- [v17.09](https://github.com/ARM-software/ComputeLibrary/releases/download/v17.09/arm_compute-v17.09-bin.tar.gz)
-- [v17.06](https://github.com/ARM-software/ComputeLibrary/releases/download/v17.06/arm_compute-v17.06-bin.tar.gz)
-- [v17.05](https://github.com/ARM-software/ComputeLibrary/releases/download/v17.05/arm_compute-v17.05-bin.tar.gz)
-- [v17.04](https://github.com/ARM-software/ComputeLibrary/releases/download/v17.04/arm_compute-v17.04-bin.tar.gz)
-- [v17.03.1](https://github.com/ARM-software/ComputeLibrary/releases/download/v17.03.1/arm_compute-v17.03.1-bin.tar.gz)
-
-License & Contributions: The software is provided under MIT license. Contributions to this project are accepted under the same license.
-
-### Public mailing list
-For technical discussion, the ComputeLibrary project has a public mailing list: acl-dev@lists.linaro.org
-The list is open to anyone inside or outside of Arm to self subscribe.  In order to subscribe, please visit the following website:
-https://lists.linaro.org/mailman/listinfo/acl-dev
-
-### Developer Certificate of Origin (DCO)
-Before the ComputeLibrary project accepts your contribution, you need to certify its origin and give us your permission. To manage this process we use the Developer Certificate of Origin (DCO) V1.1 (https://developercertificate.org/)
-
-To indicate that you agree to the the terms of the DCO, you "sign off" your contribution by adding a line with your name and e-mail address to every git commit message:
-
-```Signed-off-by: John Doe <john.doe@example.org>```
-
-You must use your real name, no pseudonyms or anonymous contributions are accepted.
+[acl]:https://github.com/ARM-software/ComputeLibrary
