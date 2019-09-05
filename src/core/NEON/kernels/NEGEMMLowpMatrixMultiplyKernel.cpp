@@ -571,7 +571,6 @@ void inline matrix_multiply_u8(Iterator &ina, Iterator &inb, Iterator &out, int 
             const uint8x8_t  a00_u8 = vld1_u8(mtx_a0);
             const uint8x16_t b00_u8 = vld1q_u8(mtx_b0);
 
-            uint16_t tmp;
             const uint8x8_t  temp = vdup_n_u8(0x0F);
             const uint8x8_t  a0_u8 = vshr_n_u8(a00_u8, 4);
             const uint8x8_t  a1_u8 = vand_u8(a00_u8, temp);
@@ -583,8 +582,6 @@ void inline matrix_multiply_u8(Iterator &ina, Iterator &inb, Iterator &out, int 
             // Convert a00_u8 to uint16_t and get the lower part
             const uint16x4_t a0_u16 = vget_low_u16(vmovl_u8(a0_u8));
             const uint16x4_t a1_u16 = vget_low_u16(vmovl_u8(a1_u8));
-            tmp = vget_lane_u16(a0_u16, 0);
-            //printf("%d", tmp);
  
             // Convert b00_s8 to uint16_t
             const uint16x4x4_t b0_u16 =
@@ -657,15 +654,6 @@ void inline matrix_multiply_u8(Iterator &ina, Iterator &inb, Iterator &out, int 
             c7.val[2] = vmla_lane_u16(c7.val[2], b1_u16.val[2], a1_u16, 3);
             c7.val[3] = vmla_lane_u16(c7.val[3], b1_u16.val[3], a1_u16, 3);
 
-            tmp = vget_lane_u16(c0.val[0], 0);
-            //printf("%d", tmp);
-            tmp = vget_lane_u16(c2.val[0], 0);
-            //printf("%d", tmp);
-            tmp = vget_lane_u16(c4.val[0], 0);
-            //printf("%d", tmp);
-            tmp = vget_lane_u16(c6.val[0], 0);
-   //         printf("%d", tmp);
- 
 
         }
 
@@ -728,7 +716,6 @@ void inline matrix_multiply_u8(Iterator &ina, Iterator &inb, Iterator &out, int 
         c03.val[1] = vshlq_n_u32(vmovl_u16(c3.val[1]), 16) + vmovl_u16(c7.val[1]);
         c03.val[2] = vshlq_n_u32(vmovl_u16(c3.val[2]), 16) + vmovl_u16(c7.val[2]);
         c03.val[3] = vshlq_n_u32(vmovl_u16(c3.val[3]), 16) + vmovl_u16(c7.val[3]);
-        uint32_t tmp;
  
         auto mtx_out = reinterpret_cast<int32_t *>(out.ptr());
 
