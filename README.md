@@ -5,7 +5,7 @@ It is implemented by utilizing SIMD MAC instructions of NEON for low precision d
 
 This library is not a typical GEMM but a GEMM library of bit-packed low precision data.
 
-Currently, only general matrix multiplication(GEMM) for 4 bit data is supported.
+Currently, general matrix multiplication(GEMM) code in src directory is for 4 bit data.
 
 ## References
 This project is implemented based on arm compute library
