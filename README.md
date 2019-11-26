@@ -56,4 +56,11 @@ For example:
 mv kernel_examples/NEGEMMLowpMatrixMultiplyKernel_4bit.cpp src/core/NEON/kernels/NEGEMMLowpMatrixMultiplyKernel.cpp
 ```
 
+## Example result
+Example result per precision latency on odroid-xu4.
+
+GEMM is GEMM operation time, O/H is quantization overhead.
+
+![imagename](./image/result.png)
+
 [acl]:https://github.com/ARM-software/ComputeLibrary
