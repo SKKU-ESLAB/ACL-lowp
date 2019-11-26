@@ -5,7 +5,7 @@ It is implemented by utilizing SIMD MAC instructions of NEON for low precision d
 
 This library is not a typical GEMM but a GEMM library of bit-packed low precision data.
 
-Currently, only general matrix multiplication(GEMM) for 4 bit data is supported.
+Currently, general matrix multiplication(GEMM) code in src directory is for 4 bit data.
 
 ## References
 This project is implemented based on arm compute library
@@ -43,5 +43,17 @@ LD_LIBRARY_PATH=build/ ./neon_lowgemm
 ```
 
 You can easily modify the example code and make your own.
+
+## Example kernel files
+
+There are kernel files for serveral data types and operations.
+
+If you want to compute with specific kernel file, simply move src file and build again.
+
+For example:
+
+```
+mv kernel_examples/NEGEMMLowpMatrixMultiplyKernel_4bit.cpp src/core/NEON/kernels/NEGEMMLowpMatrixMultiplyKernel.cpp
+```
 
 [acl]:https://github.com/ARM-software/ComputeLibrary
