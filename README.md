@@ -44,4 +44,16 @@ LD_LIBRARY_PATH=build/ ./neon_lowgemm
 
 You can easily modify the example code and make your own.
 
+## Example kernel files
+
+There are kernel files for serveral data types and operations.
+
+If you want to compute with specific kernel file, simply move src file and build again.
+
+For example:
+
+```
+mv kernel_examples/NEGEMMLowpMatrixMultiplyKernel_4bit.cpp src/core/NEON/kernels/NEGEMMLowpMatrixMultiplyKernel.cpp
+```
+
 [acl]:https://github.com/ARM-software/ComputeLibrary
