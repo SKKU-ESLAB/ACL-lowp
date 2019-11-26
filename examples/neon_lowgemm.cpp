@@ -60,6 +60,12 @@ int main(int argc, char** argv) {
 
   arm_compute::GEMMInfo info(false, false, true);
   gemm_core.configure(&a1, &b1, nullptr, &c1, info);
+
+  std::cout << "Warm up" << std::endl;
+  for (int i = 0; i < times/10; ++i) {
+    gemm_core.run();
+  }
+
   std::cout << "Call gemm" << std::endl;
 
   auto tbegin = std::chrono::high_resolution_clock::now();
